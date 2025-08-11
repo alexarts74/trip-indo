@@ -16,6 +16,28 @@ interface Activity {
   destination_id: string;
 }
 
+interface Expense {
+  id: string;
+  title: string;
+  amount: number;
+  category: string;
+  date: string;
+  paid_by_user_id: string;
+  paid_for_user_id: string | null;
+  paid_by?: {
+    email: string;
+    user_metadata: {
+      full_name?: string;
+    };
+  } | null;
+  paid_for?: {
+    email: string;
+    user_metadata: {
+      full_name?: string;
+    };
+  } | null;
+}
+
 interface TripStatsProps {
   tripId: string;
   tripBudget: number;
@@ -24,6 +46,7 @@ interface TripStatsProps {
 export default function TripStats({ tripId, tripBudget }: TripStatsProps) {
   const [places, setPlaces] = useState<Place[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -49,8 +72,19 @@ export default function TripStats({ tripId, tripBudget }: TripStatsProps) {
 
       if (activitiesError) throw activitiesError;
 
+      // Récupérer les dépenses (sans les relations complexes pour l'instant)
+      const { data: expensesData, error: expensesError } = await supabase
+        .from("expenses")
+        .select(
+          "id, title, amount, category, date, paid_by_user_id, paid_for_user_id"
+        )
+        .eq("trip_id", tripId);
+
+      if (expensesError) throw expensesError;
+
       setPlaces(placesData || []);
       setActivities(activitiesData || []);
+      setExpenses(expensesData || []);
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -79,13 +113,38 @@ export default function TripStats({ tripId, tripBudget }: TripStatsProps) {
     (acc, activity) => acc + activity.price,
     0
   );
-  const totalCost = totalPlacesCost + totalActivitiesCost;
+  const totalExpensesCost = expenses.reduce(
+    (acc, expense) => acc + expense.amount,
+    0
+  );
+  const totalCost = totalPlacesCost + totalActivitiesCost + totalExpensesCost;
   const remainingBudget = tripBudget - totalCost;
   const budgetUsagePercentage = (totalCost / tripBudget) * 100;
 
-  const topExpenses = [...places, ...activities]
-    .sort((a, b) => b.price - a.price)
+  const topExpenses = [...places, ...activities, ...expenses]
+    .sort((a, b) => {
+      const priceA = "price" in a ? a.price : a.amount;
+      const priceB = "price" in b ? b.price : b.amount;
+      return priceB - priceA;
+    })
     .slice(0, 5);
+
+  const getExpenseDescription = (expense: Expense) => {
+    const paidBy =
+      expense.paid_by?.user_metadata?.full_name ||
+      expense.paid_by?.email ||
+      "Inconnu";
+
+    if (!expense.paid_for_user_id) {
+      return `Payé par ${paidBy} pour tout le monde`;
+    }
+
+    const paidFor =
+      expense.paid_for?.user_metadata?.full_name ||
+      expense.paid_for?.email ||
+      "Inconnu";
+    return `Payé par ${paidBy} pour ${paidFor}`;
+  };
 
   return (
     <div className="space-y-6">
@@ -122,13 +181,11 @@ export default function TripStats({ tripId, tripBudget }: TripStatsProps) {
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-          <h4 className="text-sm font-medium text-gray-600 mb-2">
-            Destinations
-          </h4>
+          <h4 className="text-sm font-medium text-gray-600 mb-2">Total</h4>
           <div className="text-2xl font-bold text-pink-600">
-            {places.length}
+            {places.length + activities.length + expenses.length}
           </div>
-          <div className="text-sm text-gray-500">lieux planifiés</div>
+          <div className="text-sm text-gray-500">éléments planifiés</div>
         </div>
       </div>
 
@@ -182,6 +239,13 @@ export default function TripStats({ tripId, tripBudget }: TripStatsProps) {
                 <span className="font-medium">{totalActivitiesCost}€</span>
               </div>
             </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Dépenses</span>
+              <div className="flex items-center space-x-3">
+                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                <span className="font-medium">{totalExpensesCost}€</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -190,19 +254,29 @@ export default function TripStats({ tripId, tripBudget }: TripStatsProps) {
             Top 5 des dépenses
           </h4>
           <div className="space-y-2">
-            {topExpenses.map((expense, index) => (
-              <div
-                key={expense.id}
-                className="flex justify-between items-center text-sm"
-              >
-                <span className="text-gray-600 truncate flex-1 mr-2">
-                  {index + 1}. {expense.name}
-                </span>
-                <span className="font-medium text-gray-900">
-                  {expense.price}€
-                </span>
-              </div>
-            ))}
+            {topExpenses.map((expense, index) => {
+              const name = "name" in expense ? expense.name : expense.title;
+              const price = "price" in expense ? expense.price : expense.amount;
+
+              return (
+                <div
+                  key={expense.id}
+                  className="flex flex-col space-y-1 text-sm"
+                >
+                  <div className="flex justify-between items-start">
+                    <span className="text-gray-600 truncate flex-1 mr-2">
+                      {index + 1}. {name}
+                    </span>
+                    <span className="font-medium text-gray-900">{price}€</span>
+                  </div>
+                  {"paid_by_user_id" in expense && (
+                    <div className="text-xs text-gray-500 ml-4">
+                      {getExpenseDescription(expense)}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

@@ -75,9 +75,17 @@ export default function InvitationManager({
         console.log("📧 Réponse API email:", emailResult);
 
         if (!emailResponse.ok) {
-          throw new Error(
-            emailResult.error || "Erreur lors de l'envoi de l'email"
-          );
+          const errorMessage =
+            emailResult.error || "Erreur lors de l'envoi de l'email";
+
+          // Message d'erreur spécial pour la configuration email
+          if (emailResponse.status === 403 && emailResult.details) {
+            throw new Error(
+              `Configuration email requise : ${emailResult.details}`
+            );
+          }
+
+          throw new Error(errorMessage);
         }
 
         console.log("✅ Email envoyé avec succès !");
@@ -149,9 +157,13 @@ export default function InvitationManager({
 
       <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
         <p className="text-xs text-blue-700">
-          <strong>💡 Note :</strong> L'invité recevra un email avec un lien pour
-          accepter ou décliner l'invitation. Assurez-vous que la configuration
-          Resend est correcte dans votre fichier .env.local
+          <strong>💡 Note importante :</strong> Pour envoyer des invitations par
+          email, vous devez configurer Resend. Actuellement, vous ne pouvez
+          envoyer qu'à votre propre adresse. Consultez le fichier{" "}
+          <code className="bg-blue-100 px-1 rounded">
+            src/config/email-setup.md
+          </code>{" "}
+          pour la configuration.
         </p>
       </div>
     </div>

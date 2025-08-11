@@ -8,6 +8,7 @@ import TripStats from "./TripStats";
 import TripParticipants from "./TripParticipants";
 import ReceivedInvitations from "./ReceivedInvitations";
 import InvitationManager from "./InvitationManager";
+import ExpenseManager from "./ExpenseManager";
 
 interface Destination {
   id: string;
@@ -34,7 +35,12 @@ interface TripDetailsProps {
   onBack: () => void;
 }
 
-type TabType = "overview" | "destinations" | "participants" | "invitations";
+type TabType =
+  | "overview"
+  | "destinations"
+  | "expenses"
+  | "participants"
+  | "invitations";
 
 export default function TripDetails({ trip, onBack }: TripDetailsProps) {
   const [destinations, setDestinations] = useState<Destination[]>([]);
@@ -136,6 +142,12 @@ export default function TripDetails({ trip, onBack }: TripDetailsProps) {
       name: "Destinations",
       icon: "🗺️",
       description: "Gérer les lieux et activités",
+    },
+    {
+      id: "expenses" as TabType,
+      name: "Dépenses",
+      icon: "💰",
+      description: "Gérer les dépenses et remboursements",
     },
     {
       id: "participants" as TabType,
@@ -320,6 +332,9 @@ export default function TripDetails({ trip, onBack }: TripDetailsProps) {
             )}
           </div>
         );
+
+      case "expenses":
+        return <ExpenseManager tripId={trip.id} tripName={trip.title} />;
 
       case "participants":
         return (
