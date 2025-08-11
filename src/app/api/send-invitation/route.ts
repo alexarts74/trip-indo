@@ -70,7 +70,8 @@ export async function POST(request: NextRequest) {
 
             <div style="text-align: center; margin: 30px 0;">
               <a href="${
-                process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+                process.env.NEXT_PUBLIC_APP_URL ||
+                "https://trip-indo.netlify.app"
               }/dashboard" class="button accept">
                 ✅ Accepter l'invitation
               </a>
