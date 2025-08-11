@@ -26,6 +26,9 @@ export default function PlaceActivities({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [isAddActivityModalOpen, setIsAddActivityModalOpen] = useState(false);
+  const [deletingActivityId, setDeletingActivityId] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     fetchActivities();
@@ -53,6 +56,31 @@ export default function PlaceActivities({
     fetchActivities();
   };
 
+  const handleDeleteActivity = async (activityId: string) => {
+    if (!confirm("Êtes-vous sûr de vouloir supprimer cette activité ?")) {
+      return;
+    }
+
+    setDeletingActivityId(activityId);
+    try {
+      const { error } = await supabase
+        .from("activities")
+        .delete()
+        .eq("id", activityId);
+
+      if (error) throw error;
+
+      // Mettre à jour la liste locale
+      setActivities(
+        activities.filter((activity) => activity.id !== activityId)
+      );
+    } catch (error: any) {
+      setError(error.message);
+    } finally {
+      setDeletingActivityId(null);
+    }
+  };
+
   const totalActivitiesCost = activities.reduce(
     (acc, activity) => acc + activity.price,
     0
@@ -68,70 +96,100 @@ export default function PlaceActivities({
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+      <div className="bg-red-50 border border-red-200 text-red-700 px-3 sm:px-4 py-2 sm:py-3 rounded-xl text-xs sm:text-sm">
         Erreur: {error}
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h4 className="text-lg font-semibold text-gray-900">
+    <div className="space-y-3 sm:space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+        <h4 className="text-base sm:text-lg font-semibold text-gray-900">
           Activités à {destinationName}
         </h4>
         <button
           onClick={() => setIsAddActivityModalOpen(true)}
-          className="bg-gradient-to-r from-orange-500 to-pink-500 text-white px-3 py-2 rounded-lg font-medium hover:from-orange-600 hover:to-pink-600 transition-all duration-200 text-sm"
+          className="bg-gradient-to-r from-orange-500 to-pink-500 text-white px-3 sm:px-4 py-2 rounded-lg font-medium hover:from-orange-600 hover:to-pink-600 transition-all duration-200 text-xs sm:text-sm w-full sm:w-auto"
         >
           + Ajouter une activité
         </button>
       </div>
 
       {activities.length === 0 ? (
-        <div className="text-center py-6 bg-gray-50 rounded-xl">
-          <div className="text-3xl mb-2">🎯</div>
-          <p className="text-gray-600 mb-3">Aucune activité planifiée</p>
+        <div className="text-center py-4 sm:py-6 bg-gray-50 rounded-xl">
+          <div className="text-2xl sm:text-3xl mb-2">🎯</div>
+          <p className="text-gray-600 mb-3 text-sm sm:text-base">
+            Aucune activité planifiée
+          </p>
           <button
             onClick={() => setIsAddActivityModalOpen(true)}
-            className="bg-gradient-to-r from-orange-500 to-pink-500 text-white px-4 py-2 rounded-lg font-medium hover:from-orange-600 hover:to-pink-600 transition-all duration-200 text-sm"
+            className="bg-gradient-to-r from-orange-500 to-pink-500 text-white px-3 sm:px-4 py-2 rounded-lg font-medium hover:from-orange-600 hover:to-pink-600 transition-all duration-200 text-xs sm:text-sm w-full sm:w-auto"
           >
             Planifier ma première activité
           </button>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2 sm:space-y-3">
           {activities.map((activity) => (
             <div
               key={activity.id}
-              className="bg-gray-50 rounded-lg p-4 border border-gray-200"
+              className="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-200"
             >
-              <div className="flex items-start justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-2 sm:space-y-0">
                 <div className="flex-1">
-                  <h5 className="font-medium text-gray-900 mb-1">
+                  <h5 className="font-medium text-gray-900 mb-1 text-sm sm:text-base">
                     {activity.name}
                   </h5>
                   {activity.description && (
-                    <p className="text-gray-600 text-sm mb-2">
+                    <p className="text-gray-600 text-xs sm:text-sm mb-2">
                       {activity.description}
                     </p>
                   )}
-                  <div className="flex items-center space-x-4 text-sm text-gray-500">
-                    <span>⏱️ {activity.duration}</span>
-                    <span>💰 {activity.price}€</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-4 text-xs sm:text-sm text-gray-500">
+                    <span className="flex items-center">
+                      ⏱️ {activity.duration}
+                    </span>
+                    <span className="flex items-center">
+                      💰 {activity.price}€
+                    </span>
                   </div>
                 </div>
-                <div className="ml-4 text-right">
-                  <div className="text-lg font-bold text-gray-900">
+                <div className="sm:ml-4 sm:text-right flex flex-row sm:flex-col sm:items-end space-x-3 sm:space-x-0 sm:space-y-1">
+                  <div className="text-base sm:text-lg font-bold text-gray-900">
                     {activity.price}€
                   </div>
+                  <button
+                    onClick={() => handleDeleteActivity(activity.id)}
+                    disabled={deletingActivityId === activity.id}
+                    className="text-red-600 hover:text-red-800 transition-colors p-1 rounded hover:bg-red-50 disabled:opacity-50"
+                    title="Supprimer cette activité"
+                  >
+                    {deletingActivityId === activity.id ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                    ) : (
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                    )}
+                  </button>
                 </div>
               </div>
             </div>
           ))}
 
           <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-1 sm:space-y-0 text-xs sm:text-sm">
               <span className="text-orange-800 font-medium">
                 Coût total des activités :
               </span>
