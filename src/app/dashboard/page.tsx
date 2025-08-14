@@ -67,6 +67,7 @@ export default function Dashboard() {
   }, [router]);
 
   if (isLoading) {
+    console.log("isLoading", isLoading);
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
