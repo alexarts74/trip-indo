@@ -46,10 +46,40 @@ export default function TripList({
         throw new Error("Utilisateur non connecté");
       }
 
+      // Récupérer les voyages où l'utilisateur est participant
+      const { data: participantTrips, error: participantError } = await supabase
+        .from("trip_participants")
+        .select("trip_id")
+        .eq("user_id", user.id);
+
+      if (participantError) throw participantError;
+
+      // Récupérer les voyages créés par l'utilisateur
+      const { data: createdTrips, error: createdError } = await supabase
+        .from("trips")
+        .select("id")
+        .eq("user_id", user.id);
+
+      if (createdError) throw createdError;
+
+      // Combiner les deux listes
+      const participantIds = participantTrips?.map((p) => p.trip_id) || [];
+      const createdIds = createdTrips?.map((t) => t.id) || [];
+
+      // Fusionner et dédupliquer
+      const allTripIds = [...new Set([...participantIds, ...createdIds])];
+
+      if (allTripIds.length === 0) {
+        setTrips([]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Récupérer les détails de tous les voyages
       const { data, error } = await supabase
         .from("trips")
         .select("*")
-        .eq("user_id", user.id)
+        .in("id", allTripIds)
         .order("created_at", { ascending: false });
 
       if (error) throw error;

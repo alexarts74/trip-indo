@@ -64,10 +64,10 @@ export default function AddExpenseModal({
       console.log("Tous les participants (5 premiers):", allParticipants);
       console.log("Erreur tous participants:", allError);
 
-      // Récupérer les participants du voyage
+      // Récupérer les participants du voyage (user_id et email)
       const { data: participants, error } = await supabase
         .from("trip_participants")
-        .select("user_id")
+        .select("user_id, email")
         .eq("trip_id", tripId);
 
       console.log("participants pour ce voyage:", participants);
@@ -78,11 +78,21 @@ export default function AddExpenseModal({
         return;
       }
 
-      // Créer une liste simple avec les IDs
-      const simpleParticipants = participants.map((participant) => ({
-        user_id: participant.user_id,
-        display_name: `Utilisateur ${participant.user_id.slice(0, 8)}...`,
-      }));
+      // Créer une liste simple avec les IDs ou emails
+      const simpleParticipants = participants.map((participant) => {
+        // Si on a un email, l'utiliser
+        if (participant.email) {
+          return {
+            user_id: participant.email, // Utiliser l'email comme ID temporaire
+            display_name: participant.email,
+          };
+        }
+        // Sinon, c'est un UUID, afficher un nom générique
+        return {
+          user_id: participant.user_id,
+          display_name: `Utilisateur ${participant.user_id.slice(0, 8)}...`,
+        };
+      });
 
       console.log("participants transformés:", simpleParticipants);
       setTripParticipants(simpleParticipants);

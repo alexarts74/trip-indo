@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import TripList from "../components/TripList";
 import TripDetails from "../components/TripDetails";
 import SentInvitations from "../components/SentInvitations";
+import { syncUserParticipants } from "../lib/participantSync";
 
 interface Trip {
   id: string;
@@ -35,6 +36,12 @@ export default function Dashboard() {
         return;
       }
       setUser(session.user);
+
+      // Synchroniser les participants si l'utilisateur a un email
+      if (session.user.email) {
+        await syncUserParticipants(session.user.email, session.user.id);
+      }
+
       setIsLoading(false);
     };
 
@@ -48,6 +55,11 @@ export default function Dashboard() {
         router.push("/login");
       } else {
         setUser(session.user);
+
+        // Synchroniser les participants lors de la connexion
+        if (event === "SIGNED_IN" && session.user.email) {
+          await syncUserParticipants(session.user.email, session.user.id);
+        }
       }
     });
 

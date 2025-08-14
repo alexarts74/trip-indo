@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
 import AddPlaceModal from "./AddPlaceModal";
+import AddParticipantModal from "./AddParticipantModal";
 import PlaceActivities from "./PlaceActivities";
 import TripStats from "./TripStats";
 import TripParticipants from "./TripParticipants";
@@ -47,6 +48,8 @@ export default function TripDetails({ trip, onBack }: TripDetailsProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [isAddPlaceModalOpen, setIsAddPlaceModalOpen] = useState(false);
+  const [isAddParticipantModalOpen, setIsAddParticipantModalOpen] =
+    useState(false);
   const [deletingDestinationId, setDeletingDestinationId] = useState<
     string | null
   >(null);
@@ -340,12 +343,22 @@ export default function TripDetails({ trip, onBack }: TripDetailsProps) {
         return (
           <div className="space-y-4 sm:space-y-6">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6">
-              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
-                Participants du voyage
-              </h3>
-              <p className="text-gray-600 mb-6 text-sm sm:text-base">
-                Gérez votre équipe de voyageurs
-              </p>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0 mb-6">
+                <div className="flex-1">
+                  <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+                    Participants du voyage
+                  </h3>
+                  <p className="text-gray-600 text-sm sm:text-base">
+                    Gérez votre équipe de voyageurs
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsAddParticipantModalOpen(true)}
+                  className="bg-gradient-to-r from-orange-500 to-pink-500 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-medium hover:from-orange-600 hover:to-pink-600 transition-all duration-200 text-sm sm:text-base w-full sm:w-auto"
+                >
+                  + Ajouter un participant
+                </button>
+              </div>
               <TripParticipants
                 tripId={trip.id}
                 tripName={trip.title}
@@ -455,6 +468,17 @@ export default function TripDetails({ trip, onBack }: TripDetailsProps) {
         onClose={() => setIsAddPlaceModalOpen(false)}
         tripId={trip.id}
         onPlaceAdded={handlePlaceAdded}
+      />
+
+      {/* Modal d'ajout de participant */}
+      <AddParticipantModal
+        isOpen={isAddParticipantModalOpen}
+        onClose={() => setIsAddParticipantModalOpen(false)}
+        tripId={trip.id}
+        onParticipantAdded={() => {
+          // Rafraîchir la liste des participants
+          window.location.reload();
+        }}
       />
     </div>
   );
