@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
-import InviteFriendModal from "./InviteFriendModal";
 
 interface Participant {
   id: string;
@@ -14,13 +13,6 @@ interface Participant {
     first_name: string;
     last_name: string;
   } | null;
-}
-
-interface Invitation {
-  id: string;
-  invitee_email: string;
-  status: string;
-  created_at: string;
 }
 
 interface TripParticipantsProps {
@@ -35,15 +27,12 @@ export default function TripParticipants({
   currentUserId,
 }: TripParticipantsProps) {
   const [participants, setParticipants] = useState<Participant[]>([]);
-  const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
 
   useEffect(() => {
     fetchParticipants();
-    fetchInvitations();
   }, [tripId]);
 
   const fetchParticipants = async () => {
@@ -93,32 +82,6 @@ export default function TripParticipants({
     }
   };
 
-  const fetchInvitations = async () => {
-    // Ne charger les invitations que si l'utilisateur est propriétaire
-    if (!isOwner) {
-      setInvitations([]);
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from("trip_invitations")
-        .select("*")
-        .eq("trip_id", tripId)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setInvitations(data || []);
-    } catch (error: any) {
-      console.error("Erreur lors du chargement des invitations:", error);
-      setInvitations([]);
-    }
-  };
-
-  const handleInvitationSent = () => {
-    fetchInvitations();
-  };
-
   const removeParticipant = async (
     participantId: string,
     participantUserId: string
@@ -155,7 +118,7 @@ export default function TripParticipants({
 
   return (
     <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">Participants</h3>
           <p className="text-sm text-gray-600">
@@ -163,14 +126,6 @@ export default function TripParticipants({
             {participants.length > 1 ? "s" : ""}
           </p>
         </div>
-        {isOwner && (
-          <button
-            onClick={() => setIsInviteModalOpen(true)}
-            className="bg-gradient-to-r from-orange-500 to-pink-500 text-white px-4 py-2 rounded-xl font-medium hover:from-orange-600 hover:to-pink-600 transition-all duration-200 text-sm"
-          >
-            + Inviter un ami
-          </button>
-        )}
       </div>
 
       {error && (
@@ -246,64 +201,6 @@ export default function TripParticipants({
           </div>
         ))}
       </div>
-
-      {/* Invitations en attente */}
-      {invitations.length > 0 && (
-        <div className="border-t border-gray-200 pt-6">
-          <h4 className="text-sm font-medium text-gray-700 mb-3">
-            Invitations en attente
-          </h4>
-          <div className="space-y-2">
-            {invitations
-              .filter((inv) => inv.status === "pending")
-              .map((invitation) => (
-                <div
-                  key={invitation.id}
-                  className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
-                      <svg
-                        className="w-4 h-4 text-white"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {invitation.invitee_email}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Invité le{" "}
-                        {new Date(invitation.created_at).toLocaleDateString(
-                          "fr-FR"
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-xs text-yellow-700 bg-yellow-100 px-2 py-1 rounded-full">
-                    En attente
-                  </span>
-                </div>
-              ))}
-          </div>
-        </div>
-      )}
-
-      {/* Modal d'invitation */}
-      <InviteFriendModal
-        isOpen={isInviteModalOpen}
-        onClose={() => setIsInviteModalOpen(false)}
-        tripId={tripId}
-        tripName={tripName}
-        onInvitationSent={handleInvitationSent}
-      />
     </div>
   );
 }
